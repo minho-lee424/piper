@@ -22,3 +22,4 @@ htmlcov
 lightning_logs/
 data/
 model/
+infer/
