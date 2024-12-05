@@ -303,7 +303,7 @@ class VitsModel(pl.LightningModule):
 
                 tag = test_utt.text or str(utt_idx)
                 self.logger.experiment.add_audio(
-                    tag, test_audio, sample_rate=self.hparams.sample_rate
+                    tag, test_audio, self.global_step, sample_rate=self.hparams.sample_rate
                 )
 
             return super().on_validation_end()
