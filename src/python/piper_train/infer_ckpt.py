@@ -6,6 +6,7 @@ from enum import Enum
 from typing import List
 
 import numpy as np
+import pyopenjtalk
 import torch
 from piper_phonemize import phonemize_codepoints, phonemize_espeak, tashkeel_run
 
@@ -31,6 +32,7 @@ def get_args():
     parser.add_argument("-m", "--model", required=True)
     parser.add_argument("-c", "--config", required=True)
     parser.add_argument("-s", "--sid", default=0, type=int)
+    parser.add_argument("-l", "--lang")
     parser.add_argument("-t", "--text", required=True)
     parser.add_argument("-o", "--output_path", default="infer/test.wav")
     args = parser.parse_args()
@@ -57,6 +59,7 @@ def inferencing(
     model,
     config,
     sid,
+    lang,
     line,
     output_path,
     length_scale=1,
@@ -64,7 +67,7 @@ def inferencing(
     noise_scale_w=0.8,
 ):
     audios = []
-    text = phonemize(config, line)
+    text = phonemize(config, lang, line)
 
     for phonemes in text:
         phoneme_ids = phonemes_to_ids(config, phonemes)
@@ -83,12 +86,15 @@ def inferencing(
     write_wav(output_path, sample_rate, merged_audio)
 
 
-def phonemize(config, text: str) -> List[List[str]]:
+def phonemize(config, lang, text: str) -> List[List[str]]:
     """Text to phonemes grouped by sentence."""
     if config["phoneme_type"] == PhonemeType.ESPEAK:
-        if config["espeak"]["voice"] == "ar":
+        lang = lang or config["espeak"]["voice"]
+        if lang == "ar":
             text = tashkeel_run(text)
-        return phonemize_espeak(text, config["espeak"]["voice"])
+        if lang == "ja":
+            text = pyopenjtalk.g2p(text, kana=True)
+        return phonemize_espeak(text, lang)
     if config["phoneme_type"] == PhonemeType.TEXT:
         return phonemize_codepoints(text)
     raise ValueError(f"Unexpected phoneme type: {config.phoneme_type}")
@@ -116,7 +122,7 @@ def main():
     os.makedirs(os.path.dirname(args.output_path), exist_ok=True)
 
     model, config = load_model_and_config(args.model, args.config)
-    inferencing(model, config, args.sid, args.text, args.output_path)
+    inferencing(model, config, args.sid, args.lang, args.text, args.output_path)
 
 
 if __name__ == "__main__":

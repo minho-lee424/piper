@@ -6,6 +6,7 @@ import itertools
 import json
 import logging
 import os
+import pyopenjtalk
 import unicodedata
 from collections import Counter
 from dataclasses import dataclass, field
@@ -297,6 +298,9 @@ def phonemize_batch_espeak(
                 try:
                     if args.tashkeel:
                         utt.text = tashkeel_run(utt.text)
+
+                    if args.language == "ja":
+                        utt.text = pyopenjtalk.g2p(utt.text, kana=True)
 
                     _LOGGER.debug(utt)
                     all_phonemes = phonemize_espeak(casing(utt.text), args.language)
